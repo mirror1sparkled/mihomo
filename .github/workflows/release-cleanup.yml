@@ -31,6 +31,7 @@ jobs:
     steps:
       - name: Recreate release without assets
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_LATEST: ${{ inputs.latest }}
           INPUT_PRERELEASE: ${{ inputs.prerelease }}
