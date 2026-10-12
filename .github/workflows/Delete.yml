@@ -1,17 +1,31 @@
 name: Delete old workflow
+
 on:
   workflow_dispatch:
   schedule:
+    # Run weekly on Sunday at 00:00 UTC.
     - cron: '0 0 * * 0'
-# Run monthly, at 00:00 on the 1st day of month.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/Delete.yml']
+
+permissions:
+  actions: write
 
 jobs:
   del_runs:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify workflow authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=1" --silent
+
       - name: Delete workflow runs
-        uses: GitRML/delete-workflow-runs@main
+        if: github.event_name != 'push'
+        uses: GitRML/delete-workflow-runs@6c7cf4852e73c46502ee79494d99f5b504cacc6d
         with:
-          token: ${{ secrets.AUTH_PAT }}
+          token: ${{ github.token }}
           repository: ${{ github.repository }}
           retain_days: 30
+          keep_minimum_runs: 6
