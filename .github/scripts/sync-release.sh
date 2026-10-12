@@ -69,13 +69,18 @@ fi
 
 gh release upload "$TAG" "$MIRROR_DIR/assets"/* \
   --repo "$GITHUB_REPOSITORY" --clobber
-gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$MIRROR_DIR/target.json"
+# The tag endpoint excludes draft releases; list releases to inspect the draft.
+gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --slurp > "$MIRROR_DIR/targets.json"
 
 python3 - <<'PY'
 import json, os, pathlib
 root = pathlib.Path(os.environ["MIRROR_DIR"])
 source = {asset["name"]: asset for asset in json.loads((root / "source.json").read_text())["assets"]}
-target = json.loads((root / "target.json").read_text())
+releases = [release for page in json.loads((root / "targets.json").read_text()) for release in page]
+matches = [release for release in releases if release["tag_name"] == (root / "tag").read_text()]
+if len(matches) != 1:
+    raise SystemExit("Expected exactly one mirror release")
+target = matches[0]
 actual = {asset["name"]: asset for asset in target["assets"]}
 names = (root / "names").read_text().splitlines()
 if target["tag_name"] != (root / "tag").read_text() or set(actual) != set(names):
